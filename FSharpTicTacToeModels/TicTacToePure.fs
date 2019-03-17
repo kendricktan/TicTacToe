@@ -7,21 +7,21 @@ namespace QUT
 
         // type to represent a single move specified using (row, column) coordinates of the selected square
         type Move = 
-            { something: int (* TODO implement type *) }
+            { Row: int; Col: int }
             interface ITicTacToeMove with
-                member this.Row with get() = raise (System.NotImplementedException("getRow"))
-                member this.Col with get() = raise (System.NotImplementedException("getCol"))
+                member this.Row with get() = this.Row
+                member this.Col with get() = this.Col
 
         // type to represent the current state of the game, including the size of the game (NxN), who's turn it is and the pieces on the board
         type GameState = 
-            { something: int (* TODO implement type *) }
+            { Turn: Player; Size: int; Board: Map<Move, Player> }
             interface ITicTacToeGame<Player> with
-                member this.Turn with get()    = raise (System.NotImplementedException("getTurn"))
-                member this.Size with get()    = raise (System.NotImplementedException("getSize"))
-                member this.getPiece(row, col) = raise (System.NotImplementedException("getPiece"))
+                member this.Turn with get()    = this.Turn
+                member this.Size with get()    = this.Size
+                member this.getPiece(row, col) = Map.find { Row = row; Col = col } this.Board |> string
 
 
-        let CreateMove row col = raise (System.NotImplementedException("CreateMove"))
+        let CreateMove row col = { Row = row; Col = col }
 
         let ApplyMove (oldState:GameState) (move: Move) = raise (System.NotImplementedException("CreateMove"))
 
