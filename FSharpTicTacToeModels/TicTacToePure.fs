@@ -1,6 +1,7 @@
 namespace QUT
 
     module FSharpPureTicTacToeModel =
+        open System.Xml.Xsl
     
         // type to represent the two players: Noughts and Crosses
         type Player = Nought | Cross
@@ -23,15 +24,41 @@ namespace QUT
 
         let CreateMove row col = { Row = row; Col = col }
 
-        let ApplyMove (oldState:GameState) (move: Move) = raise (System.NotImplementedException("CreateMove"))
+        let ApplyMove (oldState:GameState) (move: Move) =
+            let newTurn = if (oldState.Turn = Nought) then Cross else Nought
+            let newBoard = Map.add move oldState.Turn oldState.Board
+            { Turn = newTurn; Size = oldState.Size; Board = newBoard }
 
         // Returns a sequence containing all of the lines on the board: Horizontal, Vertical and Diagonal
         // The number of lines returned should always be (size*2+2)
         // the number of squares in each line (represented by (row,column) coordinates) should always be equal to size
         // For example, if the input size = 2, then the output would be: 
-        //     seq [seq[(0,0);(0,1)];seq[(1,0);(1,1)];seq[(0,0);(1,0)];seq[(0,1);(1,1)];seq[(0,0);(1,1)];seq[(0,1);(1,0)]]
+        //     seq [
+        //          seq[(0,0);(0,1)];
+        //          seq[(1,0);(1,1)];
+        //          seq[(0,0);(1,0)];
+        //          seq[(0,1);(1,1)];
+        //          seq[(0,0);(1,1)];
+        //          seq[(0,1);(1,0)]
+        //          ]
         // The order of the lines and the order of the squares within each line does not matter
-        let Lines (size:int) : seq<seq<int*int>> = raise (System.NotImplementedException("Lines"))
+        let Lines (size:int) : seq<seq<int*int>> =
+            let size2 = size - 1
+            let hor (r: int): array<(int*int)> = [| for c in 0 .. size2 -> (r, c) |]  // Horizontal line helper
+            let ver (c: int): array<(int*int)> = [| for r in 0 .. size2 -> (r, c) |]  // Vertical line helper
+
+            let hors: seq<seq<int*int>> = seq { for i in 0 .. size2 -> seq (hor i) }
+            let vers: seq<seq<int*int>> = seq { for i in 0 .. size2 -> seq (ver i) }
+
+            let diag1: seq<int*int> = seq [| for i in 0 .. size2 -> (i, i) |]  // Diagonal Line 1
+            let diag2: seq<int*int> = seq [| for i in 0 .. size2 -> (size2 - i, i) |] //Diagonal Line 2
+            let diags: seq<seq<int*int>> = seq [| diag1; diag2 |]
+
+            let result = Array.fold Seq.append Seq.empty [| hors; vers; diags |]
+
+            result
+            
+            // Seq.append (Seq.append hors vers) diags
 
         // Checks a single line (specified as a sequence of (row,column) coordinates) to determine if one of the players
         // has won by filling all of those squares, or a Draw if the line contains at least one Nought and one Cross
@@ -45,10 +72,7 @@ namespace QUT
 
         let MiniMaxWithPruning game = raise (System.NotImplementedException("MiniMaxWithPruning"))
 
-        // plus other helper functions ...
-
-
-
+        // plus other helper functions 
 
         [<AbstractClass>]
         type Model() =
