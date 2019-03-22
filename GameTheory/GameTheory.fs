@@ -4,6 +4,7 @@ namespace QUT
         open System.IO
         open System.IO
         open System.Diagnostics
+        open System.IO
 
         let MiniMaxGenerator (heuristic: 'Game -> 'Player -> int) (getTurn: 'Game -> 'Player) (gameOver: 'Game -> bool) (moveGenerator: 'Game -> seq<'Move>) (applyMove: 'Game -> 'Move -> 'Game) : 'Game -> 'Player -> Option<'Move> * int =
             // Basic MiniMax algorithm without using alpha beta pruning
@@ -14,20 +15,18 @@ namespace QUT
                 if gameOver game then (None, heuristic game perspective) else 
                 
                 let moves: seq<'Move> = moveGenerator game
-                let futureGames: seq<'Game> = Seq.map (fun (m: 'Move) -> applyMove game m) moves
-                let futureScores: seq<Option<'Move> * int> = Seq.map (fun (g: 'Game) -> MiniMax g perspective) futureGames
-                let movesWithFutureScores: seq<'Move * (Option<'Move> * int)> = Seq.zip moves futureScores
+                let movesWithfutureScores: seq<'Move * int> = Seq.map (fun (m: 'Move) -> (m, MiniMax (applyMove game m) perspective |> snd)) moves
 
                 // Max score (User's perspective)
                 if getTurn game = perspective
                 then
-                    let bestMoveScore: ('Move * (Option<'Move> * int)) = Seq.maxBy (fun x -> snd x |> snd) movesWithFutureScores
-                    (Some <| fst bestMoveScore, snd <| snd bestMoveScore)
+                    let bestMoveScore: ('Move * int) = Seq.maxBy snd movesWithfutureScores
+                    (Some <| fst bestMoveScore, snd <| bestMoveScore)
 
                 // Min score (Not User's perspective)
                 else
-                    let worseMoveScore: ('Move * (Option<'Move> * int)) = Seq.minBy (fun x -> snd x |> snd) movesWithFutureScores
-                    (Some <| fst worseMoveScore, snd <| snd worseMoveScore)
+                    let worseMoveScore: ('Move * int) = Seq.minBy snd movesWithfutureScores
+                    (Some <| fst worseMoveScore, snd <| worseMoveScore)
                 
 
             NodeCounter.Reset()
@@ -46,45 +45,38 @@ namespace QUT
                 // Max score (User's perspective)
                 if getTurn game = perspective
                 then
-                    let rec bestScore (acc: Option<'Move> * int) (ms: seq<'Move>) (rAlpha: int) =
-                        if Seq.isEmpty ms then acc
+ 
+                    let bestScorerWithPrune (acc: Option<'Move> * int) (move: 'Move): Option<'Move> * int =
+                        let curAlpha = acc |> snd
+
+                        // Prune
+                        if curAlpha >= beta then acc
                         else
-                            // Extract stuff from gs
-                            let curMove = Seq.head ms
-                            let curGame = applyMove game curMove
-                            
-                            let newScore = MiniMax rAlpha beta curGame perspective |> snd
+                            // New score
+                            let newAlpha = MiniMax curAlpha beta (applyMove game move) perspective |> snd
 
-                            // Get new alpha and acc
-                            let newAlpha = max rAlpha newScore
-                            let newAcc = if newScore > rAlpha then (Some curMove, newScore) else acc
+                            if newAlpha > curAlpha then (Some move, newAlpha)
+                            else acc
 
-                            if newAlpha >= beta then newAcc
-                            else
-                                bestScore newAcc (Seq.skip 1 ms) newAlpha
-                    
-                    bestScore (None, alpha) moves alpha
+                    moves
+                    |> Seq.fold bestScorerWithPrune (None, alpha)
 
                 // Min score (Not User's perspective)
                 else
-                    let rec worseScore (acc: Option<'Move> * int) (ms: seq<'Move>) (rBeta: int) =
-                        if Seq.isEmpty ms then acc
+                    let worseScorerWithPrune (acc: Option<'Move> * int) (move: 'Move): Option<'Move> * int =
+                        let curBeta = acc |> snd
+
+                        // Prune
+                        if alpha >= curBeta then acc
                         else
-                            // Extract stuff from gs
-                            let curMove = Seq.head ms
-                            let curGame = applyMove game curMove
-                            
-                            let newScore = MiniMax alpha rBeta curGame perspective |> snd
+                            // New score
+                            let newBeta = MiniMax alpha curBeta (applyMove game move) perspective |> snd
 
-                            // Get new beta and acc
-                            let newBeta = min rBeta newScore
-                            let newAcc = if newScore < rBeta then (Some curMove, newScore) else acc
-
-                            if alpha >= newBeta then newAcc
-                            else
-                                worseScore newAcc (Seq.skip 1 ms) newBeta
+                            if newBeta < curBeta then (Some move, newBeta)
+                            else acc
                     
-                    worseScore (None, beta) moves beta
+                    moves
+                    |> Seq.fold worseScorerWithPrune (None, beta)
                     
             NodeCounter.Reset()
             MiniMax
