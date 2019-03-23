@@ -12,22 +12,24 @@ namespace QUT
                 NodeCounter.Increment()
 
                 // Game over, get score
-                if gameOver game then (None, heuristic game perspective) else 
-                
-                let moves: seq<'Move> = moveGenerator game
-                let movesWithfutureScores: seq<'Move * int> = Seq.map (fun (m: 'Move) -> (m, MiniMax (applyMove game m) perspective |> snd)) moves
+                if gameOver game
+                then (None, heuristic game perspective)
+                else  
+                    let moves: seq<'Move> = moveGenerator game
+                    let movesWithfutureScores: seq<'Move * int> = Seq.map (fun (m: 'Move) -> (m, MiniMax (applyMove game m) perspective |> snd)) moves
 
-                // Max score (User's perspective)
-                if getTurn game = perspective
-                then
-                    let bestMoveScore: ('Move * int) = Seq.maxBy snd movesWithfutureScores
-                    (Some <| fst bestMoveScore, snd <| bestMoveScore)
+                    // Max score (User's perspective)
+                    if getTurn game = perspective
+                    then
+                        movesWithfutureScores
+                        |> Seq.maxBy snd
+                        |> fun x -> (x |> fst |> Some, x |> snd)
 
-                // Min score (Not User's perspective)
-                else
-                    let worseMoveScore: ('Move * int) = Seq.minBy snd movesWithfutureScores
-                    (Some <| fst worseMoveScore, snd <| worseMoveScore)
-                
+                    // Min score (Not User's perspective)
+                    else
+                        movesWithfutureScores
+                        |> Seq.minBy snd
+                        |> fun x -> (x |> fst |> Some, x |> snd)
 
             NodeCounter.Reset()
             MiniMax
@@ -49,10 +51,10 @@ namespace QUT
                     let bestScorerWithPrune (acc: Option<'Move> * int) (move: 'Move): Option<'Move> * int =
                         let curAlpha = acc |> snd
 
-                        // Prune
+                        // Prune (short circuting)
                         if curAlpha >= beta then acc
                         else
-                            // New score
+                            // Get new score
                             let newAlpha = MiniMax curAlpha beta (applyMove game move) perspective |> snd
 
                             if newAlpha > curAlpha then (Some move, newAlpha)
@@ -66,7 +68,7 @@ namespace QUT
                     let worseScorerWithPrune (acc: Option<'Move> * int) (move: 'Move): Option<'Move> * int =
                         let curBeta = acc |> snd
 
-                        // Prune
+                        // Prune (short circuting)
                         if alpha >= curBeta then acc
                         else
                             // New score

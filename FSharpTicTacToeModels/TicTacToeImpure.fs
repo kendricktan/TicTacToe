@@ -2,7 +2,7 @@ namespace QUT
 
     module FSharpImpureTicTacToeModel =
     
-        type Player = Something (* implement type *)
+        type Player = Cross | Nought
 
         type GameState = 
             { something: int (* implement type *) } 
@@ -37,8 +37,8 @@ namespace QUT
         type WithAlphaBetaPruning() =
             override this.ToString()         = "Impure F# with Alpha Beta Pruning";
             interface ITicTacToeModel<GameState, Move, Player> with
-                member this.Cross with get()             = raise (System.NotImplementedException("getCross"))
-                member this.Nought with get()            = raise (System.NotImplementedException("getNought"))
+                member this.Cross with get()             = Cross
+                member this.Nought with get()            = Nought
                 member this.GameStart(firstPlayer, size) = GameStart firstPlayer size
                 member this.CreateMove(row, col)         = CreateMove row col
                 member this.GameOutcome(game)            = GameOutcome game 

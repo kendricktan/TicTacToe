@@ -16,16 +16,27 @@ namespace QUT
         // type to represent the current state of the game, including the size of the game (NxN), who's turn it is and the pieces on the board
         type GameState = 
             { Turn: Player; Size: int; Board: Map<Move, Player> }
+
+            member this.getPiece(row, col) = (this :> ITicTacToeGame<Player>).getPiece(row, col)
+
             interface ITicTacToeGame<Player> with
                 member this.Turn with get()    = this.Turn
                 member this.Size with get()    = this.Size
-                member this.getPiece(row, col) = Map.find { Row = row; Col = col } this.Board |> string
+                member this.getPiece(row, col) = 
+                    let key = { Row = row; Col = col }
+                    if Map.containsKey key this.Board
+                    then match Map.find { Row = row; Col = col } this.Board with
+                            | Nought -> "O"
+                            | Cross -> "X"
+                    else ""
 
 
         let CreateMove row col = { Row = row; Col = col }
 
         let ApplyMove (oldState:GameState) (move: Move) =
-            let newTurn = if (oldState.Turn = Nought) then Cross else Nought
+            let newTurn = match oldState.Turn with
+                            | Nought -> Cross
+                            | Cross -> Nought
             let newBoard = Map.add move oldState.Turn oldState.Board
             { Turn = newTurn; Size = oldState.Size; Board = newBoard }
 
@@ -54,23 +65,58 @@ namespace QUT
             let diag2: seq<int*int> = seq [| for i in 0 .. size2 -> (size2 - i, i) |] //Diagonal Line 2
             let diags: seq<seq<int*int>> = seq [| diag1; diag2 |]
 
-            let result = Array.fold Seq.append Seq.empty [| hors; vers; diags |]
-
-            result
+            Array.fold Seq.append Seq.empty [| hors; vers; diags |]
             
-            // Seq.append (Seq.append hors vers) diags
 
         // Checks a single line (specified as a sequence of (row,column) coordinates) to determine if one of the players
         // has won by filling all of those squares, or a Draw if the line contains at least one Nought and one Cross
-        let CheckLine (game:GameState) (line:seq<int*int>) : TicTacToeOutcome<Player> = raise (System.NotImplementedException("CheckLine"))
+        let CheckLine (game:GameState) (line:seq<int*int>) : TicTacToeOutcome<Player> =
+            let pieces = Seq.map (fun x -> game.getPiece(fst x, snd x)) line
 
-        let GameOutcome game = raise (System.NotImplementedException("GameOutcome"))
+            if Seq.forall (fun x -> x = "O") pieces
+            then Win(Nought, line)
+            else if Seq.forall (fun x -> x = "X") pieces
+            then Win(Cross, line)
+            else if (Seq.contains "X" pieces && Seq.contains "O" pieces)
+            then Draw
+            else Undecided
 
-        let GameStart (firstPlayer:Player) size = raise (System.NotImplementedException("GameStart"))
+        let GetPossibleMoves (gameState: GameState): seq<Move> =
+            seq { for x in 0 .. (gameState.Size - 1) do for y in 0 .. (gameState.Size - 1) -> { Row=x; Col=y } }
+            |> Seq.fold (fun acc (k: Move) -> if Map.containsKey k gameState.Board then acc else Seq.append acc (Seq.singleton k)) Seq.empty
 
-        let MiniMax game = raise (System.NotImplementedException("MiniMax"))
+        let GameOutcome (game: GameState): TicTacToeOutcome<Player> =
+            let gameOutcomeReducer (acc: TicTacToeOutcome<Player>) (line: seq<int*int>): TicTacToeOutcome<Player> =
+                match acc with
+                    | Win _ -> acc
+                    | _ -> CheckLine game line
+            
+            Lines game.Size
+            |> Seq.fold gameOutcomeReducer Undecided
 
-        let MiniMaxWithPruning game = raise (System.NotImplementedException("MiniMaxWithPruning"))
+        let GameOver (game: GameState): bool =
+            match GameOutcome game with
+                | Win _ -> true
+                | _ -> if Map.count game.Board >= game.Size * game.Size
+                       then true
+                       else false
+
+        let HeuristicScore (game: GameState) (player: Player): int =
+            match GameOutcome game with
+                | Win (winner, _) -> if winner = player then 1 else -1
+                | _ -> 0
+
+        let GetPlayer (game: GameState) = game.Turn
+
+        let GameStart (firstPlayer: Player) size: GameState = { Turn=firstPlayer; Size=size; Board=Map.empty }
+
+        let MiniMax game = 
+            let mm = GameTheory.MiniMaxGenerator HeuristicScore GetPlayer GameOver GetPossibleMoves ApplyMove
+            mm game game.Turn
+
+        let MiniMaxWithPruning game =
+            let mm = GameTheory.MiniMaxWithAlphaBetaPruningGenerator HeuristicScore GetPlayer GameOver GetPossibleMoves ApplyMove
+            mm -1 1 game game.Turn
 
         // plus other helper functions 
 
@@ -89,10 +135,18 @@ namespace QUT
         type BasicMiniMax() =
             inherit Model()
             override this.ToString()         = "Pure F# with basic MiniMax";
-            override this.FindBestMove(game) = raise (System.NotImplementedException("FindBestMove"))
+            override this.FindBestMove(game) = 
+                let oMove = fst <| MiniMax game
+                match oMove with
+                    | Some m -> m
+                    | None -> { Row = -1; Col = -1 }
 
 
         type WithAlphaBetaPruning() =
             inherit Model()
             override this.ToString()         = "Pure F# with Alpha Beta Pruning";
-            override this.FindBestMove(game) = raise (System.NotImplementedException("FindBestMove"))
+            override this.FindBestMove(game) = 
+                let oMove = fst <| MiniMaxWithPruning game
+                match oMove with
+                    | Some m -> m
+                    | None -> { Row = -1; Col = -1 }
