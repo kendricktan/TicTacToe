@@ -74,11 +74,11 @@ namespace QUT
             let pieces = Seq.map (fun x -> game.getPiece(fst x, snd x)) line
 
             if Seq.forall (fun x -> x = "O") pieces
-            then Win(Nought, line)
+                then Win(Nought, line)
             else if Seq.forall (fun x -> x = "X") pieces
-            then Win(Cross, line)
+                then Win(Cross, line)
             else if (Seq.contains "X" pieces && Seq.contains "O" pieces)
-            then Draw
+                then Draw
             else Undecided
 
         let GetPossibleMoves (gameState: GameState): seq<Move> =
@@ -90,15 +90,20 @@ namespace QUT
 
             let gameOutcomeReducer (acc: TicTacToeOutcome<Player>) (line: seq<int*int>): TicTacToeOutcome<Player> =
                 match acc with
+                    // Don't bother checking if someone has won
                     | Win _ -> acc
+                    | Draw -> match CheckLine game line with
+                                | Win (a, b) -> Win (a, b)
+                                | _ -> Draw
                     | _ -> CheckLine game line
             
+            // Its only a Draw if the entire board has been filled out
             Lines game.Size
             |> Seq.fold gameOutcomeReducer Undecided
             |> fun x -> match (x, gameFilled) with
                             | Win _, _ -> x
-                            | Draw, false -> Undecided
                             | Draw, true -> Draw
+                            | Draw, false -> Undecided
                             | _, _ -> Undecided
                             
 
@@ -107,6 +112,7 @@ namespace QUT
             else
                 match GameOutcome game with
                     | Win _ -> true
+                    | Draw  -> true
                     | _ -> false
 
         let HeuristicScore (game: GameState) (player: Player): int =
