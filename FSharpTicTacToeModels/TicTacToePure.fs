@@ -86,6 +86,8 @@ namespace QUT
             |> Seq.fold (fun acc (k: Move) -> if Map.containsKey k gameState.Board then acc else Seq.append acc (Seq.singleton k)) Seq.empty
 
         let GameOutcome (game: GameState): TicTacToeOutcome<Player> =
+            let gameFilled = Map.count game.Board >= game.Size * game.Size
+
             let gameOutcomeReducer (acc: TicTacToeOutcome<Player>) (line: seq<int*int>): TicTacToeOutcome<Player> =
                 match acc with
                     | Win _ -> acc
@@ -93,13 +95,19 @@ namespace QUT
             
             Lines game.Size
             |> Seq.fold gameOutcomeReducer Undecided
+            |> fun x -> match (x, gameFilled) with
+                            | Win _, _ -> x
+                            | Draw, false -> Undecided
+                            | Draw, true -> Draw
+                            | _, _ -> Undecided
+                            
 
         let GameOver (game: GameState): bool =
-            match GameOutcome game with
-                | Win _ -> true
-                | _ -> if Map.count game.Board >= game.Size * game.Size
-                       then true
-                       else false
+            if Map.count game.Board >= game.Size * game.Size then true
+            else
+                match GameOutcome game with
+                    | Win _ -> true
+                    | _ -> false
 
         let HeuristicScore (game: GameState) (player: Player): int =
             match GameOutcome game with
