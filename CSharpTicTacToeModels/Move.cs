@@ -2,7 +2,12 @@
 {
     public class Move : ITicTacToeMove
     {
-        public int Row => throw new System.NotImplementedException("getRow");
-        public int Col => throw new System.NotImplementedException("getCol");
+        public Move(int row, int col) {
+            Row = row;
+            Col = col;
+        }
+
+        public int Row { get; }
+        public int Col { get; }
     }
 }

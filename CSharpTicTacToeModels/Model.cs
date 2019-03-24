@@ -1,32 +1,159 @@
-﻿namespace QUT.CSharpTicTacToe
+﻿using System;
+using System.Collections.Generic;
+
+namespace QUT.CSharpTicTacToe
 {
     public class WithAlphaBetaPruning : ITicTacToeModel<Game, Move, Player>
     {
-        public Player Cross => throw new System.NotImplementedException("getCross");
-        public Player Nought => throw new System.NotImplementedException("getNought");
+        public Player Cross => Player.Cross;
+        public Player Nought => Player.Nought;
+
         public override string ToString()
         {
             return "Impure C# with Alpha Beta Pruning";
         }
         public Game ApplyMove(Game game, Move move)
         {
-            throw new System.NotImplementedException("ApplyMove");
+            game.Board.Add(move, game.Turn);
+            if (game.Turn == Player.Cross)
+            {
+                game.Turn = Player.Nought;
+            }
+            else
+            {
+                game.Turn = Player.Cross;
+            }
+            return game;
         }
         public Move CreateMove(int row, int col)
         {
-            throw new System.NotImplementedException("CreateMove");
+            return new Move(row, col);
+        }
+        public List<List<Move>> Lines(int size) {
+            List<List<Move>> lines = new List<List<Move>>();
+
+            for (int i = 0; i < size; i++)
+            {
+                List<Move> hor = new List<Move>();
+                List<Move> ver = new List<Move>();
+                for (int j = 0; j < size; j++)
+                {
+                    hor.Add(CreateMove(i, j));
+                    ver.Add(CreateMove(j, i));
+                }
+                lines.Add(hor);
+                lines.Add(ver);
+            }
+
+            List<Move> diag1 = new List<Move>();
+            List<Move> diag2 = new List<Move>();
+            for (int i = 0; i < size; i++)
+            {
+                diag1.Add(CreateMove(i, i));
+                diag2.Add(CreateMove(size - 1 - i, i));
+            }
+
+            lines.Add(diag1);
+            lines.Add(diag2);
+
+            return lines;
+        }
+        public List<Move> GetPossibleMoves(Game game) {
+            List<Move> moves = new List<Move>();
+
+            for (int i = 0; i < game.Size; i++)
+            {
+                for (int j = 0; j < game.Size; j++)
+                {
+                    Move cMove = CreateMove(i, j);
+                    if (!game.Board.ContainsKey(cMove))
+                    {
+                        moves.Add(cMove);
+                    }
+                }
+            }
+
+            return moves;
+        }
+        public TicTacToeOutcome<Player> CheckLine(Game game, List<Move> line)
+        {
+            List<Tuple<int, int>> winLine = new List<Tuple<int, int>>();
+            string plays = "";
+            foreach (var i in line)
+            {
+                plays += i.ToString();
+                winLine.Add(new Tuple<int, int>(i.Row, i.Col));
+            }
+            if (plays == "XXX")
+            {
+                return TicTacToeOutcome<Player>.NewWin(Cross, winLine);
+            }
+            else if (plays == "OOO") {
+                return TicTacToeOutcome<Player>.NewWin(Nought, winLine);
+            }
+            else if (plays.Contains("O") && plays.Contains("X"))
+            {
+                return TicTacToeOutcome<Player>.Draw;
+            }
+            return TicTacToeOutcome<Player>.Undecided;
+        }
+        public TicTacToeOutcome<Player> GameOutcome(Game game)
+        {
+            var gameFilled = game.Board.Count >= game.Size * game.Size;
+            TicTacToeOutcome<Player> ret = TicTacToeOutcome<Player>.Undecided;
+
+            foreach (var line in Lines(game.Size)) {
+                ret = CheckLine(game, line);
+
+                if (ret.IsWin)
+                {
+                    break;
+                }
+                if (ret.IsDraw && gameFilled)
+                {
+                    break;
+                }
+            }
+
+            if (ret.IsDraw && !gameFilled)
+            {
+                ret = TicTacToeOutcome<Player>.Undecided;
+            }
+
+            return ret;
+        }
+        public bool GameOver(Game game) {
+            if (game.Board.Count >= game.Size * game.Size)
+            {
+                return true;
+            }
+            var outcome = GameOutcome(game);
+            if (outcome.IsWin || outcome.IsDraw)
+            {
+                return true;
+            }
+            return false;
+        }
+        public int HeuristicScore (Game game, Player p) {
+            TicTacToeOutcome<Player> outcome = GameOutcome(game);
+            if (outcome.IsDraw || outcome.IsUndecided)
+            {
+                return 0;
+            }
+            // TODO: Get help
+            if (outcome.Equals(p))
+            {
+                return 1;
+            }
+            return -1;
         }
         public Move FindBestMove(Game game)
         {
             throw new System.NotImplementedException("FindBestMove");
         }
-        public TicTacToeOutcome<Player> GameOutcome(Game game)
-        {
-            throw new System.NotImplementedException("GameOutcome");
-        }
         public Game GameStart(Player first, int size)
         {
-            throw new System.NotImplementedException("GameStart");
+            return new Game(first, size);
         }
     }
 }

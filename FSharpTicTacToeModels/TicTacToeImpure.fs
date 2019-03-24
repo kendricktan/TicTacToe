@@ -54,8 +54,17 @@ namespace QUT
             else Undecided
 
         let GetPossibleMoves (gameState: GameState): seq<Move> =
-            seq { for x in 0 .. (gameState.Size - 1) do for y in 0 .. (gameState.Size - 1) -> { Row=x; Col=y } }
-            |> Seq.fold (fun acc (k: Move) -> if Map.containsKey k gameState.Board then acc else Seq.append acc (Seq.singleton k)) Seq.empty
+            let moves = seq { for x in 0 .. (gameState.Size - 1) do 
+                                  for y in 0 .. (gameState.Size - 1) -> { Row=x; Col=y } }
+
+            let mutable validMoves = Seq.empty
+
+            for i in moves do
+                validMoves <- if Map.containsKey i gameState.Board
+                              then validMoves
+                              else Seq.append validMoves (Seq.singleton i)
+            
+            validMoves
 
         let ApplyMove (game: GameState) (move: Move)  =
             game.Board <- Map.add move game.Turn game.Board
@@ -74,21 +83,18 @@ namespace QUT
             let gameFilled = Map.count game.Board >= game.Size * game.Size
             let mutable ret = Undecided
 
-            try
-                for line in (Lines game.Size) do
-                    ret <- CheckLine game line
-
-                    // Throw error when complete
-                    // Break loop
-                    ignore <| match (ret, gameFilled) with
-                                | Win _, _ -> 0 / 0
-                                | Draw, true -> 0 / 0
-                                | _ -> 0
-                        
-            with
-                | _ -> ()
             
-            ret
+            for line in (Lines game.Size) do
+                ret <- match ret with
+                       | Win _ -> ret
+                       | Draw -> if gameFilled then Draw else CheckLine game line
+                       | Undecided -> CheckLine game line
+            
+            match (ret, gameFilled) with
+                | Win _, _ -> ret
+                | Draw, true -> ret
+                | Draw, false -> Undecided
+                | _, _ -> Undecided
 
         let GameOver (game: GameState): bool =
             if Map.count game.Board >= game.Size * game.Size then true
@@ -105,15 +111,12 @@ namespace QUT
 
         let GetPlayer (game: GameState) = game.Turn
         
-        // plus other helper functions ...
         let FindBestMove game    =
             let mm = GameTheory.MiniMaxWithAlphaBetaPruningGenerator HeuristicScore GetPlayer GameOver GetPossibleMoves ApplyMove
             let oMove = fst <| mm -1 1 game game.Turn
             match oMove with
                     | Some m -> m
                     | None -> { Row = -1; Col = -1 }
-
-
 
         type WithAlphaBetaPruning() =
             override this.ToString()         = "Impure F# with Alpha Beta Pruning";
