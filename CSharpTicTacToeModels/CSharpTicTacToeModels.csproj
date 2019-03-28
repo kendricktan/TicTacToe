@@ -6,6 +6,7 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\GameTheory\GameTheory.fsproj" />
     <ProjectReference Include="..\NodeCounter\NodeCounter.csproj" />
     <ProjectReference Include="..\TicTacToeModelInterfaces\TicTacToeModelInterfaces.fsproj" />
 	</ItemGroup>  

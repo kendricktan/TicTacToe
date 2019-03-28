@@ -79,22 +79,22 @@ namespace QUT
         let GameStart first size =
             { Turn=first; Size=size; Board=Map.empty }
 
-        let GameOutcome game     = 
-            let gameFilled = Map.count game.Board >= game.Size * game.Size
-            let mutable ret = Undecided
+        let GameOutcome game = 
+            let outcomes = seq { for l in (Lines game.Size) -> CheckLine game l }
 
+            let getWin = fun x -> match x with 
+                                    | Win _ -> true
+                                    | _ -> false
             
-            for line in (Lines game.Size) do
-                ret <- match ret with
-                       | Win _ -> ret
-                       | Draw -> if gameFilled then Draw else CheckLine game line
-                       | Undecided -> CheckLine game line
+            let getDraw = fun x -> match x with
+                                    | Draw -> true
+                                    | _ -> false
             
-            match (ret, gameFilled) with
-                | Win _, _ -> ret
-                | Draw, true -> ret
-                | Draw, false -> Undecided
-                | _, _ -> Undecided
+            if Seq.exists getWin outcomes
+            then Seq.filter getWin outcomes |> Seq.head
+            else if Seq.forall getDraw outcomes
+            then Draw
+            else Undecided
 
         let GameOver (game: GameState): bool =
             if Map.count game.Board >= game.Size * game.Size then true

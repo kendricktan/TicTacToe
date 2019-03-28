@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using Microsoft.FSharp.Core;
 
 namespace QUT.CSharpTicTacToe
 {
@@ -14,7 +15,7 @@ namespace QUT.CSharpTicTacToe
         }
         public Game ApplyMove(Game game, Move move)
         {
-            game.Board.Add(move, game.Turn);
+            game.Board.Add((move.Row, move.Col), game.Turn);
             if (game.Turn == Player.Cross)
             {
                 game.Turn = Player.Nought;
@@ -66,7 +67,7 @@ namespace QUT.CSharpTicTacToe
                 for (int j = 0; j < game.Size; j++)
                 {
                     Move cMove = CreateMove(i, j);
-                    if (!game.Board.ContainsKey(cMove))
+                    if (!game.Board.ContainsKey((i, j)))
                     {
                         moves.Add(cMove);
                     }
@@ -81,14 +82,14 @@ namespace QUT.CSharpTicTacToe
             string plays = "";
             foreach (var i in line)
             {
-                plays += i.ToString();
+                plays += game.getPiece(i.Row, i.Col);
                 winLine.Add(new Tuple<int, int>(i.Row, i.Col));
             }
-            if (plays == "XXX")
+            if (plays.Equals(new string('X', game.Size)))
             {
                 return TicTacToeOutcome<Player>.NewWin(Cross, winLine);
             }
-            else if (plays == "OOO") {
+            else if (plays.Equals(new string('O', game.Size))) {
                 return TicTacToeOutcome<Player>.NewWin(Nought, winLine);
             }
             else if (plays.Contains("O") && plays.Contains("X"))
@@ -136,20 +137,24 @@ namespace QUT.CSharpTicTacToe
         }
         public int HeuristicScore (Game game, Player p) {
             TicTacToeOutcome<Player> outcome = GameOutcome(game);
+            var win = outcome as TicTacToeOutcome<Player>.Win;
             if (outcome.IsDraw || outcome.IsUndecided)
             {
                 return 0;
             }
-            // TODO: Get help
-            if (outcome.Equals(p))
+            if (win.winner.Equals(p))
             {
                 return 1;
             }
             return -1;
         }
+        public Player GetTurn (Game game)
+        {
+            return game.Turn;
+        }
         public Move FindBestMove(Game game)
         {
-            throw new System.NotImplementedException("FindBestMove");
+            return CreateMove(0, 0);
         }
         public Game GameStart(Player first, int size)
         {

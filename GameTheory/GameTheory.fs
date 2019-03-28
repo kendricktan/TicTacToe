@@ -16,18 +16,19 @@ namespace QUT
                 then (None, heuristic game perspective)
                 else  
                     let moves: seq<'Move> = moveGenerator game
-                    let movesWithfutureScores: seq<'Move * int> = Seq.map (fun (m: 'Move) -> (m, MiniMax (applyMove game m) perspective |> snd)) moves
 
                     // Max score (User's perspective)
                     if getTurn game = perspective
                     then
-                        movesWithfutureScores
+                        moves
+                        |> Seq.map (fun (m: 'Move) -> (m, MiniMax (applyMove game m) perspective |> snd))
                         |> Seq.maxBy snd
                         |> fun x -> (x |> fst |> Some, x |> snd)
 
                     // Min score (Not User's perspective)
                     else
-                        movesWithfutureScores
+                        moves
+                        |> Seq.map (fun (m: 'Move) -> (m, MiniMax (applyMove game m) perspective |> snd))
                         |> Seq.minBy snd
                         |> fun x -> (x |> fst |> Some, x |> snd)
 

@@ -6,21 +6,20 @@ namespace QUT.CSharpTicTacToe
     public class Game : ITicTacToeGame<Player>
     {
         public Game(Player firstPlayer, int size) {
-            Board = new Dictionary<Move, Player>();
+            Board = new Dictionary<(int, int), Player>();
             Size = size;
             Turn = firstPlayer;
         }
 
-        public Dictionary<Move, Player> Board { set;  get; }
+        public Dictionary<(int, int), Player> Board { set;  get; }
 
         public int Size { get; }
         public Player Turn { set;  get; }
 
         public string getPiece(int row, int col)
         {
-            Move m = new Move(row, col);
-            if (Board.ContainsKey(m)) {
-                if (Board[m] == Player.Cross)
+            if (Board.ContainsKey((row, col))) {
+                if (Board[(row, col)] == Player.Cross)
                 {
                     return "X";
                 }

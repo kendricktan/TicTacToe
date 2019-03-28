@@ -85,27 +85,24 @@ namespace QUT
             seq { for x in 0 .. (gameState.Size - 1) do for y in 0 .. (gameState.Size - 1) -> { Row=x; Col=y } }
             |> Seq.fold (fun acc (k: Move) -> if Map.containsKey k gameState.Board then acc else Seq.append acc (Seq.singleton k)) Seq.empty
 
-        let GameOutcome (game: GameState): TicTacToeOutcome<Player> =
-            let gameFilled = Map.count game.Board >= game.Size * game.Size
+        let rec GameOutcome (game: GameState): TicTacToeOutcome<Player> =            
+            let outcomes = Lines game.Size
+                          |> Seq.map (fun x -> CheckLine game x)
 
-            let gameOutcomeReducer (acc: TicTacToeOutcome<Player>) (line: seq<int*int>): TicTacToeOutcome<Player> =
-                match acc with
-                    // Don't bother checking if someone has won
-                    | Win _ -> acc
-                    | Draw -> match CheckLine game line with
-                                | Win (a, b) -> Win (a, b)
-                                | _ -> Draw
-                    | _ -> CheckLine game line
+            let getWin = fun x -> match x with 
+                                    | Win _ -> true
+                                    | _ -> false
             
-            // Its only a Draw if the entire board has been filled out
-            Lines game.Size
-            |> Seq.fold gameOutcomeReducer Undecided
-            |> fun x -> match (x, gameFilled) with
-                            | Win _, _ -> x
-                            | Draw, true -> Draw
-                            | Draw, false -> Undecided
-                            | _, _ -> Undecided
-                            
+            let getDraw = fun x -> match x with
+                                    | Draw -> true
+                                    | _ -> false
+
+            if Seq.exists getWin outcomes
+            then Seq.filter getWin outcomes |> Seq.head
+            else if Seq.forall getDraw outcomes
+            then Draw
+            else Undecided
+
 
         let GameOver (game: GameState): bool =
             if Map.count game.Board >= game.Size * game.Size then true
