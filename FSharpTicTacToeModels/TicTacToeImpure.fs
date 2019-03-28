@@ -1,4 +1,5 @@
-namespace QUT
+
+   namespace QUT
 
     module FSharpImpureTicTacToeModel =
         open System
@@ -73,6 +74,13 @@ namespace QUT
                             | Cross -> Nought
             game
 
+        let RevertMove (game: GameState) (move: Move) = 
+            game.Board <- Map.remove move game.Board
+            game.Turn <- match game.Turn with
+                            | Nought -> Cross
+                            | Cross -> Nought
+            game
+
         let CreateMove row col   = { Row=row; Col=col }
 
 
@@ -110,9 +118,61 @@ namespace QUT
                 | _ -> 0
 
         let GetPlayer (game: GameState) = game.Turn
+
+        let MiniMaxWithAlphaBetaPruningGenerator (heuristic:'Game -> 'Player -> int) (getTurn: 'Game -> 'Player) (gameOver:'Game->bool) (moveGenerator: 'Game->seq<'Move>) (applyMove: 'Game -> 'Move -> 'Game) : int -> int -> 'Game -> 'Player -> Option<'Move> * int =
+            // Optimized MiniMax algorithm that uses alpha beta pruning to eliminate parts of the search tree that don't need to be explored            
+            let rec MiniMax alpha beta game perspective =
+                NodeCounter.Increment()
+
+                // Game over, get score
+                if gameOver game then (None, heuristic game perspective) else 
+                
+                let moves: seq<'Move> = moveGenerator game
+
+                // Max score (User's perspective)
+                if getTurn game = perspective
+                then
+                    let mutable acc = (None, alpha)
+
+                    for m in moves do
+                        let curAlpha = acc |> snd
+
+                        acc <- if curAlpha >= beta
+                               then acc
+                               else
+                                   // Get new score
+                                   let newAlpha = MiniMax curAlpha beta (applyMove game m) perspective |> snd
+                                   let _ = RevertMove game m
+
+                                   if newAlpha > curAlpha
+                                   then (Some m, newAlpha)
+                                   else acc
+
+                    acc
+
+                // Min score (Not User's perspective)
+                else
+                    let mutable acc = (None, beta)
+
+                    for m in moves do
+                        let curBeta = acc |> snd
+
+                        acc <- if alpha >= curBeta then acc
+                               else
+                                   // New score
+                                   let newBeta = MiniMax alpha curBeta (applyMove game m) perspective |> snd
+                                   let _ = RevertMove game m
+
+                                   if newBeta < curBeta then (Some m, newBeta)
+                                   else acc
+                    
+                    acc
+                    
+            NodeCounter.Reset()
+            MiniMax
         
         let FindBestMove game    =
-            let mm = GameTheory.MiniMaxWithAlphaBetaPruningGenerator HeuristicScore GetPlayer GameOver GetPossibleMoves ApplyMove
+            let mm = MiniMaxWithAlphaBetaPruningGenerator HeuristicScore GetPlayer GameOver GetPossibleMoves ApplyMove
             let oMove = fst <| mm -1 1 game game.Turn
             match oMove with
                     | Some m -> m

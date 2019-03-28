@@ -15,20 +15,21 @@ namespace QUT
                 if gameOver game
                 then (None, heuristic game perspective)
                 else  
-                    let moves: seq<'Move> = moveGenerator game
+                    let movesAndScores: seq<'Move * int> = 
+                        game
+                        |> moveGenerator
+                        |> Seq.map (fun (m: 'Move) -> (m, MiniMax (applyMove game m) perspective |> snd))
 
                     // Max score (User's perspective)
                     if getTurn game = perspective
                     then
-                        moves
-                        |> Seq.map (fun (m: 'Move) -> (m, MiniMax (applyMove game m) perspective |> snd))
+                        movesAndScores
                         |> Seq.maxBy snd
                         |> fun x -> (x |> fst |> Some, x |> snd)
 
                     // Min score (Not User's perspective)
                     else
-                        moves
-                        |> Seq.map (fun (m: 'Move) -> (m, MiniMax (applyMove game m) perspective |> snd))
+                        movesAndScores
                         |> Seq.minBy snd
                         |> fun x -> (x |> fst |> Some, x |> snd)
 

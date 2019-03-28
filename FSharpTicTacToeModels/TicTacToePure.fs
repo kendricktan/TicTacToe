@@ -85,7 +85,7 @@ namespace QUT
             seq { for x in 0 .. (gameState.Size - 1) do for y in 0 .. (gameState.Size - 1) -> { Row=x; Col=y } }
             |> Seq.fold (fun acc (k: Move) -> if Map.containsKey k gameState.Board then acc else Seq.append acc (Seq.singleton k)) Seq.empty
 
-        let rec GameOutcome (game: GameState): TicTacToeOutcome<Player> =            
+        let GameOutcome (game: GameState): TicTacToeOutcome<Player> =            
             let outcomes = Lines game.Size
                           |> Seq.map (fun x -> CheckLine game x)
 
